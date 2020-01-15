@@ -3,27 +3,31 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "function_name": {
-            "defaultValue": "skyworkz-api2",
+            "defaultValue": "sw-exam-api",
             "type": "String"
         },
         "appserviceplan_name": {
-            "defaultValue": "serverfarm_name",
+            "defaultValue": "sw-exam-appsvc",
             "type": "String"
         },
         "sqlservers_name": {
-            "defaultValue": "sqlserver_name",
+            "defaultValue": "sw-exam-sqlserver",
             "type": "String"
         },
 		"sqldb_name": {
-            "defaultValue": "sqldb_name",
+            "defaultValue": "sw-exam-database",
             "type": "String"
         },
 		"sql_server_password": {
-            "defaultValue": "password_value",
+            "defaultValue": "Passwordvalue#",
             "type": "String"
         },
         "storageaccount_name": {
-            "defaultValue": "storageaccount_name",
+            "defaultValue": "swexamstorageaccount",
+            "type": "String"
+        },
+		"elasticPoolName": {
+            "defaultValue": "sw-exam-elasticpool",
             "type": "String"
         }
     },
@@ -83,20 +87,49 @@
                 "targetWorkerSizeId": 0
             }
         },
+		{
+            "type": "Microsoft.Sql/servers/elasticPools",
+            "apiVersion": "2017-10-01-preview",
+            "name": "[concat(parameters('sqlservers_name'), '/', parameters('elasticPoolName'))]",
+            "location": "westeurope",
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('sqlservers_name'))]"
+            ],
+            "sku": {
+                "name": "StandardPool",
+                "tier": "Standard",
+                "capacity": 200
+            },
+            "kind": "pool",
+            "properties": {
+                "perDatabaseSettings": {
+                    "minCapacity": 0,
+                    "maxCapacity": 200
+                },
+                "zoneRedundant": false
+            }
+        },
         {
             "type": "Microsoft.Sql/servers/databases",
             "apiVersion": "2019-06-01-preview",
             "name": "[concat(parameters('sqlservers_name'), '/', parameters('sqldb_name'))]",
             "location": "westeurope",
             "dependsOn": [
-                "[resourceId('Microsoft.Sql/servers', parameters('sqlservers_name'))]"
+                "[concat('Microsoft.Sql/servers/', parameters('sqlservers_name'))]",
+				"[concat('Microsoft.Sql/servers/', parameters('sqlservers_name') ,'/elasticpools/', parameters('elasticPoolName'))]"
             ],
-            "sku": {
-                "name": "Standard",
+             "sku": {
+                "name": "ElasticPool",
                 "tier": "Standard",
-                "capacity": 10
+                "capacity": 0
             },
-            "kind": "v12.0,user"
+             "kind": "v12.0,user,pool",
+			 "properties": {
+                "collation": "SQL_Latin1_General_CP1_CI_AS",
+                "maxSizeBytes": 2147483648,
+                "elasticPoolId": "[resourceId('Microsoft.Sql/servers/elasticPools', parameters('sqlservers_name'), parameters('elasticPoolName'))]",
+                "catalogCollation": "SQL_Latin1_General_CP1_CI_AS"
+            }
         },
         {
             "type": "Microsoft.Sql/servers/firewallRules",
