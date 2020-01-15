@@ -21,6 +21,7 @@ try
     $body = $table | Select-Object $table.Columns.ColumnName | ConvertTo-Json
 
     $status = [HttpStatusCode]::OK
+    $connection.Close()
 }
 catch {
     Write-Error -Message $_.Exception

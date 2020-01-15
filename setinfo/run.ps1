@@ -3,7 +3,7 @@ using namespace System.Net
 # Input bindings are passed in via param block.
 param($Request, $TriggerMetadata)
 
-$connectionString = "Server=tcp:skyworkz-sqlserver.database.windows.net,1433;Initial Catalog=skyworkz-sql;Persist Security Info=False;User ID=sqladmin;Password=kiloploki323!;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+$connectionString = "Server=tcp:skyworkz-sqlserver.database.windows.net,1433;Initial Catalog=skyworkz-sql;Persist Security Info=False;User ID=sqladmin;Password=kiloploki323!;MultipleActiveResultSets=true;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
 $query = "INSERT example VALUES (@name, @lastname);"
 
 try 
@@ -11,13 +11,21 @@ try
     $connection = New-Object System.Data.SqlClient.SqlConnection
     $connection.ConnectionString = $connectionString
     $connection.Open()
+   
+    $elements = $Request.Body | ConvertFrom-Json
+    for ($i=0;$i -lt $elements.count -1;$i++)
+    {
+        $command = $connection.CreateCommand()
+        $command.CommandText = $query
+        $command.Parameters.AddWithValue("@name", $elements[$i].name); 
+        $command.Parameters.AddWithValue("@lastname", $elements[$i].lastname);
+    
+        $command.ExecuteReader();     
+        $comm
+    }
 
-    $command = $connection.CreateCommand()
-    $command.Parameters.AddWithValue("@name", $Request.Body.name); 
-    $command.Parameters.AddWithValue("@lastname", $Request.Body.lastname);
-
-    $result = $command.ExecuteReader();
     $status = [HttpStatusCode]::OK
+    $connection.Close()
 }
 catch 
 {
@@ -26,7 +34,7 @@ catch
     $status = [HttpStatusCode]::Unauthorized
 }
 
-$connection.Close()
+
 
 Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
     StatusCode = $status
