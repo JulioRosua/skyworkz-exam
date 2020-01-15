@@ -21,7 +21,6 @@ try
         $command.Parameters.AddWithValue("@lastname", $elements[$i].lastname);
     
         $command.ExecuteReader();     
-        $comm
     }
 
     $status = [HttpStatusCode]::OK
