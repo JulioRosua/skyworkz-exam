@@ -12,7 +12,8 @@ try
     $connection.ConnectionString = $connectionString
     $connection.Open()
    
-    $elements = $Request.Body | ConvertFrom-Json
+    $elements = $Request.Body
+
     for ($i=0;$i -lt $elements.count -1;$i++)
     {
         $command = $connection.CreateCommand()
