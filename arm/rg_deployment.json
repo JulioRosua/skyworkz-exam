@@ -1,0 +1,235 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "function_name": {
+            "defaultValue": "skyworkz-api2",
+            "type": "String"
+        },
+        "appserviceplan_name": {
+            "defaultValue": "serverfarm_name",
+            "type": "String"
+        },
+        "sqlservers_name": {
+            "defaultValue": "sqlserver_name",
+            "type": "String"
+        },
+		"sqldb_name": {
+            "defaultValue": "sqldb_name",
+            "type": "String"
+        },
+		"sql_server_password": {
+            "defaultValue": "password_value",
+            "type": "String"
+        },
+        "storageaccount_name": {
+            "defaultValue": "storageaccount_name",
+            "type": "String"
+        }
+    },
+    "variables": {
+		"storageaccount_id": "[resourceId('Microsoft.Storage/storageAccounts',parameters('storageaccount_name'))]"
+	},
+    "resources": [
+        {
+            "type": "Microsoft.Sql/servers",
+            "apiVersion": "2015-05-01-preview",
+            "name": "[parameters('sqlservers_name')]",
+            "location": "westeurope",
+            "kind": "v12.0",
+            "properties": {
+                "administratorLogin": "sqladmin",
+				"administratorLoginPassword": "[parameters('sql_server_password')]",
+                "version": "12.0"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-04-01",
+            "name": "[parameters('storageaccount_name')]",
+            "location": "westeurope",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "Storage",
+            "properties": {
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "virtualNetworkRules": [],
+                    "ipRules": [],
+                    "defaultAction": "Allow"
+                },
+                "supportsHttpsTrafficOnly": true,
+            }
+        },
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2018-02-01",
+            "name": "[parameters('appserviceplan_name')]",
+            "location": "West Europe",
+            "sku": {
+                "name": "Y1",
+                "tier": "Dynamic",
+                "size": "Y1",
+                "family": "Y",
+                "capacity": 0
+            },
+            "kind": "functionapp",
+            "properties": {
+                "perSiteScaling": false,
+                "maximumElasticWorkerCount": 1,
+                "targetWorkerCount": 0,
+                "targetWorkerSizeId": 0
+            }
+        },
+        {
+            "type": "Microsoft.Sql/servers/databases",
+            "apiVersion": "2019-06-01-preview",
+            "name": "[concat(parameters('sqlservers_name'), '/', parameters('sqldb_name'))]",
+            "location": "westeurope",
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('sqlservers_name'))]"
+            ],
+            "sku": {
+                "name": "Standard",
+                "tier": "Standard",
+                "capacity": 10
+            },
+            "kind": "v12.0,user"
+        },
+        {
+            "type": "Microsoft.Sql/servers/firewallRules",
+            "apiVersion": "2015-05-01-preview",
+            "name": "[concat(parameters('sqlservers_name'), '/AllowAllWindowsAzureIps')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('sqlservers_name'))]"
+            ],
+            "properties": {
+                "startIpAddress": "0.0.0.0",
+                "endIpAddress": "0.0.0.0"
+            }
+        },
+        {
+            "type": "Microsoft.Sql/servers/firewallRules",
+            "apiVersion": "2015-05-01-preview",
+            "name": "[concat(parameters('sqlservers_name'), '/home')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('sqlservers_name'))]"
+            ],
+            "properties": {
+                "startIpAddress": "144.178.65.226",
+                "endIpAddress": "144.178.65.226"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices",
+            "apiVersion": "2019-04-01",
+            "name": "[concat(parameters('storageaccount_name'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageaccount_name'))]"
+            ],
+            "sku": {
+                "name": "Standard_LRS"
+            },
+            "properties": {
+                "cors": {
+                    "corsRules": []
+                },
+                "deleteRetentionPolicy": {
+                    "enabled": false
+                }
+            }
+        },
+        {
+		  "apiVersion": "2015-08-01",
+		  "type": "Microsoft.Web/sites",
+		  "name": "[parameters('function_name')]",
+		  "location": "westEurope",
+		  "kind": "functionapp",
+		  "dependsOn": [
+			"[resourceId('Microsoft.Web/serverfarms', parameters('appserviceplan_name'))]",
+			"[resourceId('Microsoft.Storage/storageAccounts', parameters('storageaccount_name'))]"
+		  ],
+		  "properties": {
+			"serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appserviceplan_name'))]",
+			"siteConfig": {
+			  "appSettings": [
+				{
+				  "name": "AzureWebJobsStorage",
+				  "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('storageaccount_name'), ';AccountKey=', listKeys(variables('storageaccount_id'),'2015-05-01-preview').key1)]"
+				},
+				{
+				  "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+				  "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('storageaccount_name'), ';AccountKey=', listKeys(variables('storageaccount_id'),'2015-05-01-preview').key1)]"
+				},
+				{
+				  "name": "WEBSITE_CONTENTSHARE",
+				  "value": "[toLower(parameters('function_name'))]"
+				},
+				{
+				  "name": "FUNCTIONS_EXTENSION_VERSION",
+				  "value": "~2"
+				},
+				{
+				  "name": "WEBSITE_NODE_DEFAULT_VERSION",
+				  "value": "~10"
+				},
+				{
+				  "name": "FUNCTIONS_WORKER_RUNTIME",
+				  "value": "powershell"
+				}
+			  ]
+			}
+		  }
+		},
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2019-04-01",
+            "name": "[concat(parameters('storageaccount_name'), '/default/azure-pipelines-deploy')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageaccount_name'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageaccount_name'))]"
+            ],
+            "properties": {
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2019-04-01",
+            "name": "[concat(parameters('storageaccount_name'), '/default/azure-webjobs-hosts')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageaccount_name'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageaccount_name'))]"
+            ],
+            "properties": {
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2019-04-01",
+            "name": "[concat(parameters('storageaccount_name'), '/default/azure-webjobs-secrets')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageaccount_name'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageaccount_name'))]"
+            ],
+            "properties": {
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2019-04-01",
+            "name": "[concat(parameters('storageaccount_name'), '/default/scm-releases')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageaccount_name'), 'default')]",
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageaccount_name'))]"
+            ],
+            "properties": {
+                "publicAccess": "None"
+            }
+        }
+    ]
+}
