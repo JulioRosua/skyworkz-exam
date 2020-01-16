@@ -14,7 +14,7 @@ try
    
     $elements = $Request.Body
 
-    for ($i=0;$i -lt $elements.count -1;$i++)
+    for ($i=0;$i -lt $elements.count;$i++)
     {
         $command = $connection.CreateCommand()
         $command.CommandText = $query
