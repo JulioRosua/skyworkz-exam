@@ -2,7 +2,7 @@ using namespace System.Net
 
 param($Request, $TriggerMetadata)
 
-$connectionString = "Server=tcp:sw-exam-sqlserver.database.windows.net,1433;Initial Catalog=sw-exam-database;Persist Security Info=False;User ID=sqladmin;Password=Passwordvalue#;MultipleActiveResultSets=true;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+$connectionString = "Server=tcp:sw-exam-sqlserver.database.windows.net,1433;Initial Catalog=sw-exam-database;Persist Security Info=False;User ID=sqladmin;Password=XXXXXXXXX;MultipleActiveResultSets=true;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
 $query = "SELECT * FROM example;"
 
 try 
