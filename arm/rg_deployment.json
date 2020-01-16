@@ -19,7 +19,7 @@
             "type": "String"
         },
 		"sql_server_password": {
-            "defaultValue": "Passwordvalue#",
+            "defaultValue": "insertSQLpasswordhere",
             "type": "String"
         },
         "storageaccount_name": {
