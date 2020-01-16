@@ -1,13 +1,14 @@
 Introduction
+
 implementation of the exam requirements for skyworkz azure DevOps position
 
 Description
+
 The goal was to create a basic get/set api that can pull/push data into a DB with the next reqs:
     - Billing mode for api based in num of requests
     - Backend SQL must be elastic and scale up/down based in performance
     - Automate IaaC with ARM
     - Include yaml CICD pipelines for the solution
-
 The implementation is PoC so it's using the minimal setup without taking into account advanced security requirements
 
 Arquitecture
